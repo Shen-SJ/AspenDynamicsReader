@@ -16,7 +16,6 @@
 
 ### Future Work:
 * OOP my code.
-* rebuilt the data structure by python dictionary.
 * built a function can save the data with ExcelFile.
 
 ### Contributor: 
