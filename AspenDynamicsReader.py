@@ -37,6 +37,7 @@ import subprocess
 import math
 import pickle
 import itertools
+import copy
 
 # %%
 # 連動 AspenDynamics 程式!!!
@@ -172,6 +173,20 @@ def read_data(variables):
         data_set.append(var_dic)
 
     return data_set
+
+
+# %%
+def set_time0_at(data, attime):
+    """將資料中的時間從指定時間點歸零
+
+    :param data: AspenDynamicReader-Type data
+    :param attime: zeroing time point you want
+    :return: zeroed data
+    """
+    new_time = [i - attime for i in data[0]['Data']]
+    new_data = copy.deepcopy(data)
+    new_data[0]['Data'] = new_time
+    return new_data
 
 
 # %%
@@ -332,9 +347,13 @@ if __name__ == '__main__':
         data1 = pickle.load(f)
         data2 = pickle.load(f)
 
-    plot_dynamic_results(data, save_filename='Dynamic_result1', figure_size=(7, 12))
+    plot_dynamic_results(data1, save_filename='Dynamic_result1', figure_size=(7, 12))
 
-    multiplot_dynamic_results([data1, data2],
-                              save_filename='Dynamic_result2',
-                              figure_size=(7.5, 14),
-                              set_legend_for_each_data_group=['+20% Thoughtput', '-20% Thoughtput'])
+    new_data = set_time0_at(data1, attime=1)
+
+    plot_dynamic_results(new_data, save_filename='Dynamic_result1', figure_size=(7, 12))
+
+    # multiplot_dynamic_results([data1, data2],
+    #                           save_filename='Dynamic_result2',
+    #                           figure_size=(7.5, 14),
+    #                           set_legend_for_each_data_group=['+20% Thoughtput', '-20% Thoughtput'])
