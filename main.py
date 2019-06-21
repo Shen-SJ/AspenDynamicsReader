@@ -7,10 +7,9 @@ import pickle
 import itertools
 
 # 從pickle讀取檔案
-with open('data.pickle', 'rb') as f:
+with open('data_m.pickle', 'rb') as f:
     data1 = pickle.load(f)
     data2 = pickle.load(f)
-    data3 = pickle.load(f)
 
 
 # 改變圖片細節設定後出圖
@@ -34,9 +33,11 @@ def user_multiplot_setting(ax_list, line_group_list):
         line_group_list[i][1].set_color('r')
 
 
+# 把預設的圖設定用自定義的圖設定覆蓋掉
 adr.user_multiplot_setting = user_multiplot_setting
 
-adr.multiplot_dynamic_results([data2, data3],
+# 出圖
+adr.multiplot_dynamic_results([data1, data2],
                               save_filename='Dynamic_result2',
                               figure_size=(7.5, 14),
                               set_legend_for_each_data_group=['+20% Thoughtput', '-20% Thoughtput'])
