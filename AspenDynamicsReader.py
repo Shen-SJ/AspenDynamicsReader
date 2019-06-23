@@ -28,15 +28,6 @@
 
 """
 
-# 匯入所需模組
-import win32com.client as win32
-import matplotlib.pyplot as plt
-import numpy as np
-import subprocess
-import math
-import pickle
-import itertools
-
 
 # %%
 class ADConnector:
@@ -225,140 +216,167 @@ class ADConnector:
 
 
 # %%
-def plot_dynamic_results(data_set,
-                         save_filename,
-                         figure_size=(7, 5),
-                         font_style="Times New Roman",
-                         num_of_column=2):
-    """將指定的動態數據畫成圖，格式為(2C *R)
-    """
-    fig = plt.figure(figsize=figure_size)  # 創造一個圖並設定整個圖的大小
-    plt.rcParams["font.family"] = font_style  # 設定整個圖的字型
+class ADPlot:
+    import matplotlib.pyplot as plt
+    import subprocess, math, itertools
 
-    num_plot = len(data_set) - 1  # 計算要畫幾張圖(減去Time那欄)
-    num_plot_row = math.ceil(num_plot / num_of_column)  # 計算整個圖要幾個row
+    def plot_dynamic_results(self,
+                             data_set,
+                             save_filename,
+                             figure_size=(7, 5),
+                             font_style="Times New Roman",
+                             num_of_column=2):
+        """將指定的動態數據畫成圖，格式為(2C *R)
+        """
+        fig = self.plt.figure(figsize=figure_size)  # 創造一個圖並設定整個圖的大小
+        self.plt.rcParams["font.family"] = font_style  # 設定整個圖的字型
 
-    # 讀取數據畫圖中......
-    ax_obj_list = []  # 儲存圖物件的列表(客製化操作用)
-    for i in range(1, num_plot + 1):
-        ax = fig.add_subplot(num_plot_row, num_of_column, i)
-        ax_obj_list.append(ax)
-        line = ax.plot(data_set[0]['Data'], data_set[i]['Data'], 'b-')  # 排除數據標題後的數據
-        ax.set_xlim(0, data_set[0]['Data'][-1])
-        ax.set_xlabel('Time (hr)')
-        ax.set_ylabel(f'{data_set[i]["Name"]} ({data_set[i]["Unit"]})')
-        user_plot_setting(i, ax_obj_list=ax_obj_list, line=line)  # 使用者自訂的一些圖形規格(ex: 座標標籤、座標scale......)
+        num_plot = len(data_set) - 1  # 計算要畫幾張圖(減去Time那欄)
+        num_plot_row = self.math.ceil(num_plot / num_of_column)  # 計算整個圖要幾個row
 
-    plt.tight_layout()
+        # 讀取數據畫圖中......
+        ax_obj_list = []  # 儲存圖物件的列表(客製化操作用)
+        for i in range(1, num_plot + 1):
+            ax = fig.add_subplot(num_plot_row, num_of_column, i)
+            ax_obj_list.append(ax)
+            line = ax.plot(data_set[0]['Data'], data_set[i]['Data'], 'b-')  # 排除數據標題後的數據
+            ax.set_xlim(0, data_set[0]['Data'][-1])
+            ax.set_xlabel('Time (hr)')
+            ax.set_ylabel(f'{data_set[i]["Name"]} ({data_set[i]["Unit"]})')
+            self.user_plot_setting(i, ax_obj_list=ax_obj_list, line=line)  # 使用者自訂的一些圖形規格(ex: 座標標籤、座標scale......)
 
-    # 儲存向量圖檔svg並利用inkscape軟體轉乘emf檔
-    filename = save_filename
-    plt.savefig(filename + '.svg')
-    subprocess.call('C:\\Program Files\\Inkscape\\inkscape.exe ' + filename
-                    + '.svg ' + '--export-emf=' + filename + '.emf')
+        self.plt.tight_layout()
 
-    plt.show()
+        # 儲存向量圖檔svg並利用inkscape軟體轉乘emf檔
+        filename = save_filename
+        self.plt.savefig(filename + '.svg')
+        self.subprocess.call('C:\\Program Files\\Inkscape\\inkscape.exe ' + filename
+                             + '.svg ' + '--export-emf=' + filename + '.emf')
 
+        self.plt.show()
 
-# %%
-def multiplot_dynamic_results(data_set_group,
-                              save_filename,
-                              figure_size=(7, 5),
-                              font_style="Times New Roman",
-                              num_of_column=2,
-                              set_legend_for_each_data_group=None):
-    """將指定的動態數據畫成圖，格式為(2C *R)，座標標籤預設為第一組資料的座標label
-    """
-    # 判斷如果有一組以上的數據要重疊的話，確認每組數據變數是否數量一樣
-    if len(data_set_group) > 1:
-        data_length_list = []
-        for i_data in data_set_group:
-            data_length_list.append(len(i_data))
-        if len(set(data_length_list)) != 1:
-            raise IndexError('The length of each data set which want to merge')
+    def multiplot_dynamic_results(self,
+                                  data_set_group,
+                                  save_filename,
+                                  figure_size=(7, 5),
+                                  font_style="Times New Roman",
+                                  num_of_column=2,
+                                  set_legend_for_each_data_group=None):
+        """將指定的動態數據畫成圖，格式為(2C *R)，座標標籤預設為第一組資料的座標label
+        """
+        # 判斷如果有一組以上的數據要重疊的話，確認每組數據變數是否數量一樣
+        if len(data_set_group) > 1:
+            data_length_list = []
+            for i_data in data_set_group:
+                data_length_list.append(len(i_data))
+            if len(set(data_length_list)) != 1:
+                raise IndexError('The length of each data set which want to merge')
 
-    fig = plt.figure(figsize=figure_size)  # 設定整個圖的大小
-    plt.rcParams["font.family"] = font_style  # 設定整個圖的字型
+        fig = self.plt.figure(figsize=figure_size)  # 設定整個圖的大小
+        self.plt.rcParams["font.family"] = font_style  # 設定整個圖的字型
 
-    num_plot = len(data_set_group[0]) - 1  # 計算要畫幾張圖(減去Time那欄)
-    num_plot_row = math.ceil(num_plot / num_of_column)  # 計算整個圖要幾個row
+        num_plot = len(data_set_group[0]) - 1  # 計算要畫幾張圖(減去Time那欄)
+        num_plot_row = self.math.ceil(num_plot / num_of_column)  # 計算整個圖要幾個row
 
-    # 讀取數據畫圖中......
-    ax_list = []  # 把全部的圖物件都放到列表當中，之後回傳以客製化
-    line_group_list = []  # 把全部圖的線物件都放到列表當中，之後回傳以客製化
-    for i in range(1, num_plot + 1):
-        ax = fig.add_subplot(num_plot_row, num_of_column, i)
-        ax_list.append(ax)
+        # 讀取數據畫圖中......
+        ax_list = []  # 把全部的圖物件都放到列表當中，之後回傳以客製化
+        line_group_list = []  # 把全部圖的線物件都放到列表當中，之後回傳以客製化
+        for i in range(1, num_plot + 1):
+            ax = fig.add_subplot(num_plot_row, num_of_column, i)
+            ax_list.append(ax)
 
-        for num_plot in data_set_group:
-            line = ax.plot(num_plot[0]['Data'], num_plot[i]['Data'])  # 各數據標題後的數據
-        line_group_list.append(ax.lines)
+            for num_plot in data_set_group:
+                line = ax.plot(num_plot[0]['Data'], num_plot[i]['Data'])  # 各數據標題後的數據
+            line_group_list.append(ax.lines)
 
-        ax.set_xlim(0, data_set_group[0][0]['Data'][-1])  # 時間座標的上限預設為第一組資料的最後一個時間點
-        ax.set_xlabel('Time (hr)')
-        ax.set_ylabel(f'{data_set_group[0][i]["Name"]} ({data_set_group[0][i]["Unit"]})')  # y_label預設為第一組資料的每個類別名稱
+            ax.set_xlim(0, data_set_group[0][0]['Data'][-1])  # 時間座標的上限預設為第一組資料的最後一個時間點
+            ax.set_xlabel('Time (hr)')
+            ax.set_ylabel(f'{data_set_group[0][i]["Name"]} ({data_set_group[0][i]["Unit"]})')  # y_label預設為第一組資料的每個類別名稱
 
-    user_multiplot_setting(ax_list=ax_list,
-                           line_group_list=line_group_list)  # 使用者自訂的一些圖形規格(ex: 座標標籤、座標scale......)
+        self.user_multiplot_setting(ax_list=ax_list,
+                                    line_group_list=line_group_list)  # 使用者自訂的一些圖形規格(ex: 座標標籤、座標scale......)
 
-    # 設定legend的迴圈
-    ax_list_length = len(ax_list)
-    data_set_length = len(data_set_group)
-    if set_legend_for_each_data_group is not None:
-        # 替每個圖中的每條線設定lebel (設定legend的前置作業)
-        for ax_index, line_index in itertools.product(range(ax_list_length), range(data_set_length)):
-            line_group_list[ax_index][line_index].set_label(set_legend_for_each_data_group[line_index])
+        # 設定legend的迴圈
+        ax_list_length = len(ax_list)
+        data_set_length = len(data_set_group)
+        if set_legend_for_each_data_group is not None:
+            # 替每個圖中的每條線設定lebel (設定legend的前置作業)
+            for ax_index, line_index in self.itertools.product(range(ax_list_length), range(data_set_length)):
+                line_group_list[ax_index][line_index].set_label(set_legend_for_each_data_group[line_index])
 
-        # 替每個圖放上legend
-        for ax_object in ax_list:
-            ax_object.legend(loc='best')
+            # 替每個圖放上legend
+            for ax_object in ax_list:
+                ax_object.legend(loc='best')
 
-    plt.tight_layout()
+        self.plt.tight_layout()
 
-    # 儲存向量圖檔svg並利用inkscape軟體轉乘emf檔
-    filename = save_filename
-    plt.savefig(filename + '.svg')
-    subprocess.call('C:\\Program Files\\Inkscape\\inkscape.exe ' + filename
-                    + '.svg ' + '--export-emf=' + filename + '.emf')
+        # 儲存向量圖檔svg並利用inkscape軟體轉乘emf檔
+        filename = save_filename
+        self.plt.savefig(filename + '.svg')
+        self.subprocess.call('C:\\Program Files\\Inkscape\\inkscape.exe ' + filename
+                             + '.svg ' + '--export-emf=' + filename + '.emf')
 
-    plt.show()
+        self.plt.show()
 
+    def user_plot_setting(self, index, ax_obj_list, line):
+        """客製化特定圖形的細節參數，需要自己寫一些程式碼就是，好像有點爛
+        """
+        pass
 
-# %%
-def user_plot_setting(index, ax_obj_list, line):
-    """客製化特定圖形的細節參數，需要自己寫一些程式碼就是，好像有點爛
-    """
-    pass
+    def user_multiplot_setting(self, ax_list, line_group_list):
+        """客製化特定圖形的細節參數，需要自己寫一些程式碼就是，好像有點爛
+        """
+        pass
 
+    def change_one_ylabel(self, index_of_plot, label, ax_obj_list):
+        if index_of_plot == 1:
+            ax_obj_list[index_of_plot - 1].set_ylabel(label)
 
-#     print(f"Diagram {index}")
-#     print("in the user_plot_setting !!!")
+    def change_one_xlabel(self, index_of_plot, label, ax_obj_list):
+        if index_of_plot == 1:
+            ax_obj_list[index_of_plot - 1].set_xlabel(label)
 
-#     if index == 1:
-#         ax_obj_list[index-1].set_ylabel('I change the D1 y label')
-# %%
-def user_multiplot_setting(ax_list, line_group_list):
-    """客製化特定圖形的細節參數，需要自己寫一些程式碼就是，好像有點爛
-    """
-    pass
+    def change_all_ylabel(self, label_list, ax_obj_list):
+        for ax_index, label in self.itertools.zip_longest(range(len(ax_obj_list)), label_list):
+            ax_obj_list[ax_index].set_ylabel(label)
 
-    # plot setting change
-    lebal_list = ['C1, T13 (C)', 'QR1 (kW)',
-                  'C2, T4 (C)', 'QR2 (kW)',
-                  'MoleFrac. of AAol', 'MoleFlowrate of AAol (kmole/hr)',
-                  'MoleFrac. of Water', 'MoleFlowrate of Water (kmole/hr)',
-                  'MoleFlowrate of Solvent (kmole/hr)']
-    for ax_index, label in itertools.zip_longest(range(len(ax_list)), lebal_list):
-        ax_list[ax_index].set_ylabel(label)
+    def change_all_xlabel(self, label_list, ax_obj_list):
+        for ax_index, label in self.itertools.zip_longest(range(len(ax_obj_list)), label_list):
+            ax_obj_list[ax_index].set_xlabel(label)
 
-    # line setting change
-    for i in range(len(ax_list)):
-        line_group_list[i][1].set_linestyle('--')
+    def change_one_set_linestyle(self, index_of_line, style, ax_obj_list, line_group_list):
+        for i in range(len(ax_obj_list)):
+            line_group_list[i][index_of_line - 1].set_linestyle(style)
+
+    def change_one_set_linecolor(self, index_of_line, color, ax_obj_list, line_group_list):
+        for i in range(len(ax_obj_list)):
+            line_group_list[i][index_of_line - 1].set_color(color)
 
 
 # %%
 if __name__ == '__main__':
+    import pickle
+
+
+    class adplot(ADPlot):
+        def user_plot_setting(self, index, ax_obj_list, line):
+            self.change_one_ylabel(1, 'I change the D1 y label', ax_obj_list)
+
+        def user_multiplot_setting(self, ax_list, line_group_list):
+            # plot setting change
+            label_list = ['C1, T13 (C)', 'QR1 (kW)',
+                          'C2, T4 (C)', 'QR2 (kW)',
+                          'MoleFrac. of AAol', 'MoleFlowrate of AAol (kmole/hr)',
+                          'MoleFrac. of Water', 'MoleFlowrate of Water (kmole/hr)',
+                          'MoleFlowrate of Solvent (kmole/hr)']
+            self.change_all_ylabel(label_list, ax_list)
+            self.change_one_set_linestyle(2, '--', ax_list, line_group_list)
+            self.change_one_set_linecolor(1, 'b', ax_list, line_group_list)
+            self.change_one_set_linecolor(2, 'r', ax_list, line_group_list)
+
     ad = ADConnector()
+    adp = adplot()
+
     data = ad.read_data([ad.controller_pv('C1_T13C'),
                          ad.column_qr('C1'),
                          ad.controller_pv('C2_T4C'),
@@ -383,11 +401,11 @@ if __name__ == '__main__':
         data1 = pickle.load(f)
         data2 = pickle.load(f)
 
-    plot_dynamic_results(data, save_filename='Dynamic_result1', figure_size=(7, 12))
+    adp.plot_dynamic_results(data, save_filename='Dynamic_result1', figure_size=(7, 12))
 
-    plot_dynamic_results(ad.set_time0_at(data, 1), save_filename='Dynamic_result1', figure_size=(7, 12))
+    adp.plot_dynamic_results(ad.set_time0_at(data, 1), save_filename='Dynamic_result1', figure_size=(7, 12))
 
-    multiplot_dynamic_results([data1, data2],
-                              save_filename='Dynamic_result2',
-                              figure_size=(7.5, 14),
-                              set_legend_for_each_data_group=['+20% Thoughtput', '-20% Thoughtput'])
+    adp.multiplot_dynamic_results([data1, data2],
+                                  save_filename='Dynamic_result2',
+                                  figure_size=(7.5, 14),
+                                  set_legend_for_each_data_group=['+20% Thoughtput', '-20% Thoughtput'])
