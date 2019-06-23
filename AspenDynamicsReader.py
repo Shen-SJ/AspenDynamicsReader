@@ -32,161 +32,196 @@
 import win32com.client as win32
 import matplotlib.pyplot as plt
 import numpy as np
-import re
 import subprocess
 import math
 import pickle
 import itertools
-import copy
-
-# %%
-# 連動 AspenDynamics 程式!!!
-ad = win32.Dispatch('AD Application')
-
-# 匯入當前正在跑的檔案到程式裡面，並創造一個'模擬檔案'的物件
-ad_sim = ad.Simulation
-
-print(ad_sim.Name)  # 確認看看檔案對不對
-
-# 將你檔案中的製程匯入到程式碼裡面
-ad_flowsheet = ad_sim.Flowsheet
 
 
 # %%
-# 所有會用到的函式
-def blocks_list():
-    """回傳一個檔案中所有block名子的列表
-    """
-    b_list = []
-    for block in ad_flowsheet.Blocks:
-        b_list.append(block.Name)
+class ADConnector:
+    def __init__(self, path=None, version=None):
+        """Launch the AspenDynamics by the program. You can specified the path to open the file or just
+        open the file by yourself.
 
-    return b_list
-
-
-def streams_list():
-    """回傳一個檔案中所有stream名子的列表
-    """
-    s_list = []
-    for stream in ad_flowsheet.Streams:
-        s_list.append(stream.Name)
-
-    return s_list
-
-
-def stream_moleflowrate(sname):
-    """回傳指定物流之摩爾流率物件(不會顯示值喔)
-    """
-    return ad_flowsheet.Streams(sname).F, "Moleflowrate"
-
-
-def stream_molefraction(sname, component):
-    """回傳指定物流之特地物質的摩爾分率物件(不會顯示值喔)
-    """
-    return ad_flowsheet.Streams(sname).Zn(component), f"MoleFrac. of {component}"
-
-
-def column_qr(bname):
-    """回傳指定蒸餾塔之再沸器負荷(不會顯示值喔)
-    """
-    return ad_flowsheet.Blocks(bname).QReb, "QR"
-
-
-def column_stage_temperature(bname, stage):
-    """回傳指定蒸餾塔之再沸器負荷(不會顯示值喔)
-    """
-    return ad_flowsheet.Blocks(bname).Stage(stage).T, f"T{stage}"
-
-
-def controller_pv(bname):
-    """回傳指定控制器之PV值(不會顯示值喔)
-    """
-    return ad_flowsheet.Blocks(bname).PV, "PV"
-
-
-def controller_op(bname):
-    """回傳指定控制器之PV值(不會顯示值喔)
-    """
-    return ad_flowsheet.Blocks(bname).OP, "OP"
-
-
-def controller_sp(bname):
-    """回傳或修改指定控制器之sp值(不會顯示值喔)
-    """
-    return ad_flowsheet.Blocks(bname).SP, "SP"
-
-
-# %%
-def read_data(variables):
-    """讀取指定項目之歷史資料
-    """
-    # 所有輸出的資料都會在這列表當中
-    data_set = []
-
-    # 先建立時間序列
-    variable_record = variables[0][0].history  # 取得物流流量
-    record_interval = variable_record.Interval  # 取得紀錄區間
-    record_starttime = variable_record.StartTime  # 取得紀錄開始時間
-    record_endtime = variable_record.EndTime  # 取得紀錄結束時間
-
-    time_dic = {'Name': 'Time',  # 時間的標題: Time
-                'Unit': 'hr',  # 時間的單位: hr
-                'Data': []}  # 時間的數據
-
-    for pre_time in range(int(record_starttime), int(record_endtime / record_interval + 1)):
-        time = pre_time * record_interval
-        time_dic['Data'].append(time)
-
-    # 把時間序列加進數據列表當中
-    data_set.append(time_dic)
-
-    # 開始讀取數據
-    name_match = re.compile(r"[A-Z]+\([\'|\"](\w+)[\'|\"]\).")  # 抓取單元或物流名稱用的正則表達式
-    controller_name_match = re.compile(r"(\w+).(PV|OP)")  # 抓取控制器名稱用的正則表達式
-    for pre_obj in variables:  # pre_obj=(AspenObject, axial_label)
-        obj = pre_obj[0]
-        label_name = pre_obj[1]  # 顯示在座標軸上面的label
-
-        # 控制器變數名稱的判別跟物流或單元不一樣，因此要使用邏輯判斷以個別處理
-        if obj.TypeName == 'control_signal':
-            var_name = controller_name_match.search(obj.Name).group(1)  # 控制器名稱
+        :param path: a exist AspenDynamics file path. If it's None. It will read the file you open.
+        :param version: specified the version of AspenDynamics. for V10, 3600. for V8.8, 3400.
+        """
+        import win32com.client as win32
+        # 連動 AspenDynamics 程式!!!
+        if version is None:
+            self.ad = win32.Dispatch('AD Application')
         else:
-            var_name = name_match.search(obj.Name).group(1)  # 單元或物流的名稱
+            self.ad = win32.Dispatch(f'AD Application {version}')
 
-        var_unit = obj.Units  # 單元或物流變數的單位
+        if path is None:
+            # 匯入當前正在跑的檔案到程式裡面，並創造一個'模擬檔案'的物件
+            self.ad_sim = self.ad.Simulation
+            print(self.ad_sim.Name)  # 確認檔名對不對
+            # 將檔案中的製程匯入
+            self.ad_flowsheet = self.ad_sim.Flowsheet
+        else:
+            pass
+        # TODO: 新增用程式開啟檔案之指令，
+        #  不過要解決輸入字串但判別不出字串的問題
 
-        var_dic = {'Name': var_name + ', ' + label_name,
-                   'Unit': var_unit,
-                   'Data': []}  # 目前該變數的所以資訊都會匯入到此列表，換個變數後即清空
+    @staticmethod
+    def read_data(variables):
+        """Read the specified AspenDynamics time-dependent parameter.
+        The parameter should be set on a form.
 
-        record_data = obj.History  # 所有的數據都在這history類別裡面
-        # 用個迴圈把數據一個一個加到 var_dic['Data'] 當中
+        :param variables: a list of ADConnector Object.
+        :return: a set of dictionary data with a list.
+        """
+        import re
+        # 所有輸出的資料都會在這列表當中
+        data_set = []
+
+        # 先建立時間序列
+        variable_record = variables[0][0].history  # 取得物流流量
+        record_interval = variable_record.Interval  # 取得紀錄區間
+        record_starttime = variable_record.StartTime  # 取得紀錄開始時間
+        record_endtime = variable_record.EndTime  # 取得紀錄結束時間
+
+        time_dic = {'Name': 'Time',  # 時間的標題: Time
+                    'Unit': 'hr',  # 時間的單位: hr
+                    'Data': []}  # 時間的數據
+
         for pre_time in range(int(record_starttime), int(record_endtime / record_interval + 1)):
             time = pre_time * record_interval
-            var_dic['Data'].append(record_data.AtTime(time))
+            time_dic['Data'].append(time)
 
-        # 如果數據資料長度跟時間長度不一致，需要檢查一下看出了什麼錯誤
-        if len(var_dic['Data']) != len(time_dic['Data']):
-            raise IndexError("The Data length is not equal to the time set, Pleas Check the Code !!!")
+        # 把時間序列加進數據列表當中
+        data_set.append(time_dic)
 
-        # 數據長度與時間長度一致，就加入到 data_set 裡吧~
-        data_set.append(var_dic)
+        # 開始讀取數據
+        name_match = re.compile(r"[A-Z]+\([\'|\"](\w+)[\'|\"]\).")  # 抓取單元或物流名稱用的正則表達式
+        controller_name_match = re.compile(r"(\w+).(PV|OP)")  # 抓取控制器名稱用的正則表達式
+        for pre_obj in variables:  # pre_obj=(AspenObject, axial_label)
+            obj = pre_obj[0]
+            label_name = pre_obj[1]  # 顯示在座標軸上面的label
 
-    return data_set
+            # 控制器變數名稱的判別跟物流或單元不一樣，因此要使用邏輯判斷以個別處理
+            if obj.TypeName == 'control_signal':
+                var_name = controller_name_match.search(obj.Name).group(1)  # 控制器名稱
+            else:
+                var_name = name_match.search(obj.Name).group(1)  # 單元或物流的名稱
 
+            var_unit = obj.Units  # 單元或物流變數的單位
 
-# %%
-def set_time0_at(data, attime):
-    """將資料中的時間從指定時間點歸零
+            var_dic = {'Name': var_name + ', ' + label_name,
+                       'Unit': var_unit,
+                       'Data': []}  # 目前該變數的所以資訊都會匯入到此列表，換個變數後即清空
 
-    :param data: AspenDynamicReader-Type data
-    :param attime: zeroing time point you want
-    :return: zeroed data
-    """
-    new_time = [i - attime for i in data[0]['Data']]
-    new_data = copy.deepcopy(data)
-    new_data[0]['Data'] = new_time
-    return new_data
+            record_data = obj.History  # 所有的數據都在這history類別裡面
+            # 用個迴圈把數據一個一個加到 var_dic['Data'] 當中
+            for pre_time in range(int(record_starttime), int(record_endtime / record_interval + 1)):
+                time = pre_time * record_interval
+                var_dic['Data'].append(record_data.AtTime(time))
+
+            # 如果數據資料長度跟時間長度不一致，需要檢查一下看出了什麼錯誤
+            if len(var_dic['Data']) != len(time_dic['Data']):
+                raise IndexError("The Data length is not equal to the time set, Pleas Check the Code !!!")
+
+            # 數據長度與時間長度一致，就加入到 data_set 裡吧~
+            data_set.append(var_dic)
+
+        return data_set
+
+    @staticmethod
+    def set_time0_at(data, attime):
+        """Reset the time of the given data at specified time.
+
+        :param data: AspenDynamicReader-Type data
+        :param attime: zeroing time point you want
+        :return: zeroed data
+        """
+        import copy
+
+        new_time = [i - attime for i in data[0]['Data']]
+        new_data = copy.deepcopy(data)
+        new_data[0]['Data'] = new_time
+        return new_data
+
+    def blocks_list(self):
+        """Return a list of name of all blocks in AspenDynamics File.
+
+        :return: a list contains all block's name in the AD File.
+        """
+        b_list = []
+        for block in self.ad_flowsheet.Blocks:
+            b_list.append(block.Name)
+
+        return b_list
+
+    def streams_list(self):
+        """Return a list of name of all streams in AspenDynamics File.
+
+        :return: a list contains all stream's name in the AD File.
+        """
+        s_list = []
+        for stream in self.ad_flowsheet.Streams:
+            s_list.append(stream.Name)
+
+        return s_list
+
+    def stream_moleflowrate(self, sname):
+        """Return the AD Object of specified stream moleflowrate.
+
+        :param sname: available stream name in the file.
+        :return: AD Object of specified stream moleflowrate.
+        """
+        return self.ad_flowsheet.Streams(sname).F, "Moleflowrate"
+
+    def stream_molefraction(self, sname, component):
+        """Return the AD Object of specified stream  and component mole fraction.
+
+        :param sname: available stream name in the file.
+        :param component: available component name in the file.
+        :return: AD Object of specified stream  and component mole fraction.
+        """
+        return self.ad_flowsheet.Streams(sname).Zn(component), f"MoleFrac. of {component}"
+
+    def column_qr(self, bname):
+        """Return the AD Object of specified RadFrac's reboiler duty.
+
+        :param bname: available RadFrac name in the file.
+        :return: AD Object of specified RadFrac's reboiler duty.
+        """
+        return self.ad_flowsheet.Blocks(bname).QReb, "QR"
+
+    def column_stage_temperature(self, bname, stage):
+        """Return the AD Object of specified RadFrac and stage temperature.
+
+        :param bname: available RadFrac name in the file.
+        :param stage: available specified RadFrac stage number in the file.
+        :return: AD Object of specified RadFrac and stage temperature.
+        """
+        return self.ad_flowsheet.Blocks(bname).Stage(stage).T, f"T{stage}"
+
+    def controller_pv(self, bname):
+        """Return the AD Object of specified controller PV value.
+
+        :param bname: available controller name in the file.
+        :return: AD Object of specified controller PV value.
+        """
+        return self.ad_flowsheet.Blocks(bname).PV, "PV"
+
+    def controller_op(self, bname):
+        """Return the AD Object of specified controller OP value.
+
+        :param bname: available controller name in the file.
+        :return: AD Object of specified controller OP value.
+        """
+        return self.ad_flowsheet.Blocks(bname).OP, "OP"
+
+    def controller_sp(self, bname):
+        """Return the AD Object of specified controller SP value.
+
+        :param bname: available controller name in the file.
+        :return: AD Object of specified controller SP value.
+        """
+        return self.ad_flowsheet.Blocks(bname).SP, "SP"
 
 
 # %%
@@ -323,15 +358,16 @@ def user_multiplot_setting(ax_list, line_group_list):
 
 # %%
 if __name__ == '__main__':
-    data = read_data([controller_pv('C1_T13C'),
-                      column_qr('C1'),
-                      controller_pv('C2_T4C'),
-                      column_qr('C2'),
-                      stream_molefraction('B1', 'AAOL'),
-                      stream_moleflowrate('B1'),
-                      stream_molefraction('B2', 'WATER'),
-                      stream_moleflowrate('B2'),
-                      stream_moleflowrate('SOL')])
+    ad = ADConnector()
+    data = ad.read_data([ad.controller_pv('C1_T13C'),
+                         ad.column_qr('C1'),
+                         ad.controller_pv('C2_T4C'),
+                         ad.column_qr('C2'),
+                         ad.stream_molefraction('B1', 'AAOL'),
+                         ad.stream_moleflowrate('B1'),
+                         ad.stream_molefraction('B2', 'WATER'),
+                         ad.stream_moleflowrate('B2'),
+                         ad.stream_moleflowrate('SOL')])
 
     #     # 將從AspenDynamics取得的資料存成 data.pickle ，如此可以再跑下一run，然後再畫圖
     #     with open('data.pickle', 'ab') as f:
@@ -347,13 +383,11 @@ if __name__ == '__main__':
         data1 = pickle.load(f)
         data2 = pickle.load(f)
 
-    plot_dynamic_results(data1, save_filename='Dynamic_result1', figure_size=(7, 12))
+    plot_dynamic_results(data, save_filename='Dynamic_result1', figure_size=(7, 12))
 
-    new_data = set_time0_at(data1, attime=1)
+    plot_dynamic_results(ad.set_time0_at(data, 1), save_filename='Dynamic_result1', figure_size=(7, 12))
 
-    plot_dynamic_results(new_data, save_filename='Dynamic_result1', figure_size=(7, 12))
-
-    # multiplot_dynamic_results([data1, data2],
-    #                           save_filename='Dynamic_result2',
-    #                           figure_size=(7.5, 14),
-    #                           set_legend_for_each_data_group=['+20% Thoughtput', '-20% Thoughtput'])
+    multiplot_dynamic_results([data1, data2],
+                              save_filename='Dynamic_result2',
+                              figure_size=(7.5, 14),
+                              set_legend_for_each_data_group=['+20% Thoughtput', '-20% Thoughtput'])
